@@ -3,22 +3,27 @@ import styled from "styled-components";
 import { FaInstagram, FaFacebookF } from "react-icons/fa";
 import { IoChevronDown } from "react-icons/io5";
 
+/* Resolve paths correctly under Vite when BASE_URL is not "/" */
+const BASE = (import.meta.env.BASE_URL || "/").endsWith("/")
+  ? import.meta.env.BASE_URL || "/"
+  : (import.meta.env.BASE_URL || "/") + "/";
+
 /* ---- Layout ---- */
+const BAR_HEIGHT = 100;
+
 const Bar = styled.header`
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100px;
+  top: 0; left: 0; right: 0;
+  height: ${BAR_HEIGHT}px;
   display: flex;
   align-items: center;
-  z-index: 1000;                         /* <— on top of home */
+  z-index: 1000;
 
-  /* translucent dark overlay like the screenshot */
-  background: rgba(15, 15, 15, 0.7);     /* <— transparent, not solid */
+  /* translucent dark overlay */
+  background: rgba(15, 15, 15, 0.7);
   backdrop-filter: saturate(140%) blur(0px);
 
-  /* thin top/bottom separators help against busy hero images */
+  /* subtle separators like the reference */
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
     0 -1px 0 rgba(0, 0, 0, 0.2) inset;
@@ -62,7 +67,7 @@ const Menu = styled.ul`
   display: none;
   gap: 28px;
   align-items: center;
-  margin-left: 100px;  /* offset padding on links */
+  margin-left: 100px;
 
   @media (min-width: 980px) {
     display: flex;
@@ -86,11 +91,15 @@ const LinkA = styled.a`
   transition: color 0.15s ease;
 
   &:hover,
-  &:focus-visible { color: #fff; }
+  &:focus-visible {
+    color: #fff;
+  }
 `;
 
 /* ---- Dropdown ---- */
-const DropWrap = styled.div` position: relative; `;
+const DropWrap = styled.div`
+  position: relative;
+`;
 
 const DropButton = styled.button`
   background: none;
@@ -105,9 +114,12 @@ const DropButton = styled.button`
   cursor: pointer;
 
   &:hover,
-  &:focus-visible { color: #fff; }
+  &:focus-visible {
+    color: #fff;
+  }
 `;
 
+/* Use a transient prop ($open) so styled-components won't pass it to the DOM */
 const Dropdown = styled.div`
   position: absolute;
   top: 44px;
@@ -119,7 +131,7 @@ const Dropdown = styled.div`
   overflow: hidden;
   padding: 6px 0;
   box-shadow: 0 10px 28px rgba(0,0,0,0.35);
-  display: ${(p) => (p.open ? "block" : "none")};
+  display: ${(p) => (p.$open ? "block" : "none")};
 `;
 
 const DropLink = styled.a`
@@ -173,7 +185,9 @@ const Burger = styled.button`
   color: #fff;
   cursor: pointer;
 
-  @media (min-width: 980px) { display: none; }
+  @media (min-width: 980px) {
+    display: none;
+  }
 `;
 
 const BurgerIcon = styled.span`
@@ -197,17 +211,20 @@ const BurgerIcon = styled.span`
 `;
 
 /* ---- Mobile Drawer ---- */
+/* Use transient prop ($open) to avoid DOM warnings */
 const Drawer = styled.div`
   position: fixed;
-  top: 72px;
-  left: 0;
-  right: 0;
+  top: ${BAR_HEIGHT}px; /* matches the bar height */
+  left: 0; right: 0;
   background: rgba(15, 15, 15, 0.96);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 14px 18px 18px;
-  display: ${(p) => (p.open ? "block" : "none")};
-  z-index: 1100;                         /* sits above the bar when open */
-  @media (min-width: 980px) { display: none; }
+  display: ${(p) => (p.$open ? "block" : "none")};
+  z-index: 1100;
+
+  @media (min-width: 980px) {
+    display: none;
+  }
 `;
 
 const DrawerLink = styled.a`
@@ -217,6 +234,7 @@ const DrawerLink = styled.a`
   color: #eee;
   font-size: 18px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
+
   &:last-child { border-bottom: 0; }
   &:hover { color: #fff; }
 `;
@@ -227,12 +245,18 @@ export default function Navbar() {
   const [openMobile, setOpenMobile] = useState(false);
   const dropRef = useRef(null);
 
+  // Close dropdown on outside click / ESC
   useEffect(() => {
     function onDocClick(e) {
-      if (dropRef.current && !dropRef.current.contains(e.target)) setOpenEvents(false);
+      if (dropRef.current && !dropRef.current.contains(e.target)) {
+        setOpenEvents(false);
+      }
     }
     function onKey(e) {
-      if (e.key === "Escape") { setOpenEvents(false); setOpenMobile(false); }
+      if (e.key === "Escape") {
+        setOpenEvents(false);
+        setOpenMobile(false);
+      }
     }
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onKey);
@@ -242,11 +266,25 @@ export default function Navbar() {
     };
   }, []);
 
+  // Lock the body scroll when mobile drawer is open
+  useEffect(() => {
+    if (openMobile) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [openMobile]);
+
+  // Base-aware logo path to avoid 404s when deployed under a subpath
+  const logoSrc = `${BASE}image5.jpeg`;
+
   return (
     <Bar role="navigation" aria-label="Main">
       <Wrap>
         <Logo href="/">
-          <img src="/image5.jpeg" alt="AROCSD" />
+          <img src={logoSrc} alt="AROCSD" />
         </Logo>
 
         <Nav>
@@ -260,11 +298,12 @@ export default function Navbar() {
                 <DropButton
                   aria-haspopup="menu"
                   aria-expanded={openEvents}
+                  aria-controls="nav-events-menu"
                   onClick={() => setOpenEvents((s) => !s)}
                 >
                   Events <IoChevronDown size={18} />
                 </DropButton>
-                <Dropdown open={openEvents} role="menu">
+                <Dropdown id="nav-events-menu" $open={openEvents} role="menu">
                   <DropLink href="#cars-and-coffee">Cars &amp; Coffee</DropLink>
                   <DropLink href="#rally">Rally</DropLink>
                   <DropLink href="#track-day">Track Day</DropLink>
@@ -278,25 +317,53 @@ export default function Navbar() {
         </Nav>
 
         <Right>
-          <IconButton href="https://instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer">
+          <IconButton
+            href="https://instagram.com"
+            aria-label="Instagram"
+            target="_blank"
+            rel="noreferrer"
+          >
             <FaInstagram size={16} />
           </IconButton>
-          <IconButton href="https://facebook.com" aria-label="Facebook" target="_blank" rel="noreferrer">
+          <IconButton
+            href="https://facebook.com"
+            aria-label="Facebook"
+            target="_blank"
+            rel="noreferrer"
+          >
             <FaFacebookF size={16} />
           </IconButton>
-          <Burger aria-label="Open menu" aria-expanded={openMobile} onClick={() => setOpenMobile((s) => !s)}>
+
+          <Burger
+            aria-label="Open menu"
+            aria-expanded={openMobile}
+            aria-controls="mobile-drawer"
+            onClick={() => setOpenMobile((s) => !s)}
+          >
             <BurgerIcon />
           </Burger>
         </Right>
       </Wrap>
 
-      <Drawer open={openMobile}>
-        <DrawerLink href="#history" onClick={() => setOpenMobile(false)}>History &amp; Entries</DrawerLink>
-        <DrawerLink href="#map" onClick={() => setOpenMobile(false)}>Cruise Route</DrawerLink>
-        <DrawerLink href="#faq" onClick={() => setOpenMobile(false)}>FAQ</DrawerLink>
-        <DrawerLink href="#events" onClick={() => setOpenMobile(false)}>Events</DrawerLink>
-        <DrawerLink href="#media" onClick={() => setOpenMobile(false)}>Media</DrawerLink>
-        <DrawerLink href="#about" onClick={() => setOpenMobile(false)}>About Us</DrawerLink>
+      <Drawer id="mobile-drawer" $open={openMobile}>
+        <DrawerLink href="#history" onClick={() => setOpenMobile(false)}>
+          History &amp; Entries
+        </DrawerLink>
+        <DrawerLink href="#map" onClick={() => setOpenMobile(false)}>
+          Cruise Route
+        </DrawerLink>
+        <DrawerLink href="#faq" onClick={() => setOpenMobile(false)}>
+          FAQ
+        </DrawerLink>
+        <DrawerLink href="#events" onClick={() => setOpenMobile(false)}>
+          Events
+        </DrawerLink>
+        <DrawerLink href="#media" onClick={() => setOpenMobile(false)}>
+          Media
+        </DrawerLink>
+        <DrawerLink href="#about" onClick={() => setOpenMobile(false)}>
+          About Us
+        </DrawerLink>
       </Drawer>
     </Bar>
   );

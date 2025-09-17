@@ -3,10 +3,13 @@ import styled, { css, createGlobalStyle } from "styled-components";
 import { IoArrowBack, IoArrowForward } from "react-icons/io5";
 
 /* ===============================
-   BACKGROUND (public) — WebP only
+   BACKGROUND (public)
 ================================ */
-const BG_WEBP = "/image9.jpg";
-const BG_WEBP_SET = ""; // e.g. "/image-1-1920.webp 1920w, /image-1-3200.webp 3200w"
+const BASE = (import.meta.env.BASE_URL || "/").endsWith("/")
+  ? import.meta.env.BASE_URL || "/"
+  : (import.meta.env.BASE_URL || "/") + "/";
+
+const BG_JPEG = `${BASE}image9.jpg`; // constant background
 
 /* Solid fallback paint on body */
 const GlobalStyles = createGlobalStyle`
@@ -15,11 +18,10 @@ const GlobalStyles = createGlobalStyle`
 
 /* Fixed, behind everything; CONSTANT (no fade) */
 const BackgroundLayer = styled.div`
-  image-rendering: -webkit-optimize-contrast;
   position: fixed;
   inset: 0;
   z-index: -2;
-  opacity: 1;            /* <- always visible */
+  opacity: 1;
 `;
 
 const BgImg = styled.img`
@@ -28,7 +30,7 @@ const BgImg = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;  /* or "center 20%" to bias top */
+  object-position: center;
   user-select: none;
   pointer-events: none;
 `;
@@ -77,9 +79,11 @@ const RevealWrap = styled.div`
   transform: translateY(18px);
   transition: opacity 700ms ease, transform 700ms ease;
   ${(p) => p.$in && css`opacity: 1; transform: translateY(0);`}
-  ${(p) => typeof p.$i === "number" && css`
-    transition-delay: ${Math.min(p.$i * 90, 450)}ms;
-  `}
+  ${(p) =>
+    typeof p.$i === "number" &&
+    css`
+      transition-delay: ${Math.min(p.$i * 90, 450)}ms;
+    `}
   @media (prefers-reduced-motion: reduce) {
     transition: none; opacity: 1; transform: none;
   }
@@ -106,14 +110,19 @@ const HomeFrame = styled.div`
   margin: 0 auto;
   max-width: 1440px;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset;
-  
 
   @media (max-width: 640px) {
     --bezel: 10px;
   }
 `;
 
-const RAW_IMAGES = ["/image1.jpeg","/image2.jpeg","/image4.jpeg","/image6.jpeg","/image0.jpeg"];
+const RAW_IMAGES = [
+  `${BASE}image1.jpeg`,
+  `${BASE}image2.jpeg`,
+  `${BASE}image4.jpeg`,
+  `${BASE}image6.jpeg`,
+  `${BASE}image0.jpeg`,
+];
 const IMAGES = RAW_IMAGES.map((p) => encodeURI(p));
 
 const Shell = styled.section`
@@ -125,11 +134,12 @@ const Shell = styled.section`
   background: #000;
 `;
 
+/* Use transient props to avoid DOM warnings */
 const Track = styled.div`
   height: 100%;
   display: flex;
-  transform: translateX(${(p) => `-${p.index * 100}%`});
-  transition: transform ${(p) => (p.anim ? 520 : 0)}ms ease-in-out;
+  transform: translateX(${(p) => `-${p.$index * 100}%`});
+  transition: transform ${(p) => (p.$anim ? 520 : 0)}ms ease-in-out;
 `;
 
 const Slide = styled.div`
@@ -145,7 +155,7 @@ const SlideImg = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 20%;
+  object-position: center 20%; /* tweak to crop less from the top */
   user-select: none;
 `;
 
@@ -153,7 +163,7 @@ const Arrow = styled.button`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  ${(p) => (p.left ? "left: 28px;" : "right: 28px;")}
+  ${(p) => (p.$left ? "left: 28px;" : "right: 28px;")}
   height: 68px; width: 68px; border-radius: 50%; border: 0;
   cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
   background: rgba(15,15,15,.7); color: #fff;
@@ -162,7 +172,7 @@ const Arrow = styled.button`
   &:hover { filter: brightness(1.05); }
   &:active { transform: translateY(-50%) scale(.97); }
   @media (max-width: 520px) {
-    height: 56px; width: 56px; ${(p) => (p.left ? "left: 14px;" : "right: 14px;")}
+    height: 56px; width: 56px; ${(p) => (p.$left ? "left: 14px;" : "right: 14px;")}
   }
 `;
 
@@ -172,8 +182,8 @@ const Dots = styled.div`
 `;
 const Dot = styled.button`
   height: 10px; width: 10px; border-radius: 50%; border: 0; cursor: pointer;
-  background: ${(p) => (p.active ? "rgba(255,255,255,.95)" : "rgba(255,255,255,.45)")};
-  transform: ${(p) => (p.active ? "scale(1.15)" : "scale(1)")};
+  background: ${(p) => (p.$active ? "rgba(255,255,255,.95)" : "rgba(255,255,255,.45)")};
+  transform: ${(p) => (p.$active ? "scale(1.15)" : "scale(1)")};
   transition: transform .15s ease, background .15s ease;
 `;
 
@@ -199,7 +209,6 @@ const P = styled.p`
   margin: 0 0 16px 50px;
   color: rgba(214, 214, 214, 1);
   font-family: Tahoma, sans-serif;
-  
 `;
 
 /* ===============================
@@ -261,17 +270,14 @@ export default function Home({ autoPlay = true, intervalMs = 5000 }) {
     <>
       <GlobalStyles />
 
-      {/* Constant background (no fade) */}
+      {/* Constant background (no fade), with correct type attribute */}
       <BackgroundLayer>
         <picture>
-          <source type="/image9.jpg" srcSet={BG_WEBP_SET || BG_WEBP} sizes="100vw" />
+          <source type="image/jpeg" srcSet={BG_JPEG} sizes="100vw" />
           <BgImg
-            src={BG_WEBP}
-            srcSet={BG_WEBP_SET || undefined}
-            sizes="100vw"
+            src={BG_JPEG}
             alt=""
             loading="eager"
-            fetchpriority="high"
             decoding="async"
           />
         </picture>
@@ -286,13 +292,17 @@ export default function Home({ autoPlay = true, intervalMs = 5000 }) {
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
           >
-            <Track index={index} anim={anim} onTransitionEnd={handleTransitionEnd}>
+            <Track
+              $index={index}
+              $anim={anim}
+              onTransitionEnd={handleTransitionEnd}
+            >
               {slides.map((src, i) => (
                 <Slide key={i}><SlideImg src={src} alt={`Slide ${i}`} /></Slide>
               ))}
             </Track>
 
-            <Arrow left aria-label="Previous slide" onClick={() => go("prev")}>
+            <Arrow $left aria-label="Previous slide" onClick={() => go("prev")}>
               <IoArrowBack size={28} />
             </Arrow>
             <Arrow aria-label="Next slide" onClick={() => go("next")}>
@@ -303,7 +313,7 @@ export default function Home({ autoPlay = true, intervalMs = 5000 }) {
               {IMAGES.map((_, i) => (
                 <Dot
                   key={i}
-                  active={index === i + 1}
+                  $active={index === i + 1}
                   onClick={() => { setAnim(true); setIndex(i + 1); startTimer(); }}
                   aria-label={`Go to slide ${i + 1}`}
                 />
